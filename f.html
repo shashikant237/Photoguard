@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PhotoGuard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+  :root{
+    --brand:#4db8ff;
+    --glass-bg: rgba(255,255,255,0.08);
+    --glass-border: rgba(255,255,255,0.18);
+  }
+
+  *{box-sizing:border-box}
+
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:'Orbitron',sans-serif; color:#fff; overflow-x:hidden;
+  }
+
+  /* Background image */
+  body{
+    background:url(https://images.rawpixel.com/image_social_landscape/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvcm01MTMtZS0wMDdfMi1sMTRpYnhvbS5qcGc.jpg)
+               no-repeat center center fixed;
+    background-size:cover;
+  }
+
+  /* Gradient overlay below stars (so stars are visible) */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:linear-gradient(to bottom right, rgba(5,10,25,0.85), rgba(10,0,30,0.75));
+    z-index:-2;
+  }
+
+  /* Starfield canvas sits above gradient, below content */
+  #stars{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    display:block;
+  }
+
+  /* Header / navbar (glassmorphism) */
+  header{
+    position:fixed; top:0; left:0; width:100%;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 40px;
+    background: var(--glass-bg);
+    border-bottom:1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index:10000;
+    transition: box-shadow .3s ease, background .3s ease, transform .2s ease;
+  }
+  header.scrolled{
+    box-shadow:0 10px 30px rgba(0,0,0,.35), 0 0 40px rgba(77,184,255,.15) inset;
+    background: rgba(0,0,0,0.35);
+  }
+
+  header h1{
+    cursor:pointer; font-size:1.5em; letter-spacing:2px; color:var(--brand);
+    margin:0; user-select:none;
+    filter: drop-shadow(0 0 8px rgba(77,184,255,.35));
+    transition: transform .2s ease;
+  }
+  header h1:hover{ transform:scale(1.02) }
+
+  nav{ display:flex; gap:18px; align-items:center; }
+
+  .nav-item{ position:relative; }
+
+  nav button{
+    background:none; border:1px solid transparent;
+    color:#fff; font-size:1em; cursor:pointer; padding:8px 12px;
+    border-radius:10px;
+    transition: color .25s ease, transform .15s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  nav button:hover{
+    color:var(--brand); transform:translateY(-1px);
+    border-color: rgba(255,255,255,.15);
+    box-shadow:0 6px 20px rgba(77,184,255,.15), inset 0 0 12px rgba(255,255,255,.05);
+  }
+  nav button:active{ transform:translateY(0) scale(.98) }
+
+  .logoutBtn{
+    display:none; padding:8px 14px; background:#ff4d4d;
+    border:none; border-radius:10px; cursor:pointer;
+    transition: transform .15s ease, filter .25s ease;
+  }
+  .logoutBtn:hover{ transform:translateY(-1px); filter:brightness(1.1) }
+
+  /* Dropdown (glass + animation) */
+  .dropdown{
+    position:absolute; top:calc(100% + 12px); left:0;
+    min-width:260px; max-width:360px; padding:18px 18px 16px;
+    background: var(--glass-bg);
+    border:1px solid var(--glass-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius:14px;
+    box-shadow:0 20px 50px rgba(0,0,0,.45), 0 0 28px rgba(77,184,255,.12);
+    opacity:0; transform: translateY(8px) scale(0.98);
+    visibility:hidden; pointer-events:none;
+    transition: opacity .22s ease, transform .22s ease, visibility .22s ease;
+    z-index:9999;
+  }
+  .nav-item.open .dropdown{
+    opacity:1; transform: translateY(0) scale(1);
+    visibility:visible; pointer-events:auto;
+  }
+  /* Little arrow */
+  .dropdown::before{
+    content:""; position:absolute; top:-10px; left:18px;
+    width:18px; height:18px; transform:rotate(45deg);
+    background: var(--glass-bg); border-left:1px solid var(--glass-border); border-top:1px solid var(--glass-border);
+    filter: blur(.2px);
+  }
+  .dropdown h3{ margin:0 0 10px; color:var(--brand); letter-spacing:.5px }
+  .dropdown p{ margin:8px 0; line-height:1.45; color:#e9f3ff }
+
+  /* Hero */
+  .hero{
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding-top:90px; gap:16px;
+  }
+  .hero img{
+    width:300px; will-change: transform, filter;
+    animation: float 6s ease-in-out infinite;
+    filter: drop-shadow(0 10px 35px rgba(77,184,255,.25));
+  }
+  @keyframes float{
+    0%,100%{ transform:translateY(0) }
+    50%{ transform:translateY(-14px) }
+  }
+  .hero h2{ font-size:clamp(28px,4vw,48px); margin:10px 0 6px }
+  .hero button{
+    padding:12px 22px; background:var(--brand); border:none; color:#000; font-weight:700;
+    cursor:pointer; border-radius:25px; transition: transform .15s ease, filter .25s ease, box-shadow .25s ease;
+    box-shadow:0 10px 30px rgba(77,184,255,.3);
+  }
+  .hero button:hover{ transform:translateY(-2px); filter:brightness(1.05) }
+  .hero button:active{ transform:translateY(0) scale(.98) }
+
+  /* Auth */
+  #authSection{ display:none; text-align:center; padding:60px 20px }
+  input{
+    padding:10px; margin:10px; border:none; border-radius:8px; width:260px;
+    background:rgba(255,255,255,.12); color:#fff; outline:1px solid rgba(255,255,255,.18);
+  }
+  input::placeholder{ color:#cfe7ff }
+  #authSection button{ margin-top:6px }
+
+  /* Utility: hide when not needed */
+  .hidden{ display:none !important; }
+
+  /* Responsive tweaks */
+  @media (max-width:700px){
+    nav{ gap:12px }
+    .dropdown{ max-width:85vw }
+  }
+</style>
+
+<!-- Google Sign-In script -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<header id="topbar">
+  <h1 id="logo">PhotoGuard</h1>
+  <nav>
+    <div class="nav-item">
+      <button data-target="about">About</button>
+      <div id="about" class="dropdown">
+        <h3>About PhotoGuard</h3>
+        <p>PhotoGuard is a next-generation AI-powered photo protection and storage platform designed for the modern era.</p>
+        <p>We combine end-to-end encryption, secure cloud storage, and intelligent image organization to keep your memories safe and beautifully managed.</p>
+      </div>
+    </div>
+
+    <div class="nav-item">
+      <button data-target="contact">Contact</button>
+      <div id="contact" class="dropdown">
+        <h3>Contact Us</h3>
+        <p>Email: jhashashi237@gmail.com</p>
+        <p>Phone: 7827263997</p>
+      </div>
+    </div>
+
+    <div class="nav-item">
+      <button data-target="faq">FAQ</button>
+      <div id="faq" class="dropdown">
+        <h3>FAQ</h3>
+        <p><strong>Q:</strong> What is PhotoGuard?<br><strong>A:</strong> A secure, AI-powered platform for your photos.</p>
+        <p><strong>Q:</strong> Can I access photos offline?<br><strong>A:</strong> Yes, via mobile app offline mode.</p>
+        <p><strong>Q:</strong> Can I share my photos?<br><strong>A:</strong> Yes, with secure share links.</p>
+      </div>
+    </div>
+
+    <button id="loginBtn">Login/Register</button>
+    <button class="logoutBtn" id="logoutBtn">Logout</button>
+  </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero" id="heroSection">
+  <img src="https://flickwise.in/wp-content/uploads/2025/01/%E2%80%94Pngtree%E2%80%94realistic-illustration-of-a-floating_13008531-1024x1024.png" alt="Astronaut" />
+  <h2>Fortifying Your Photos, Forever</h2>
+  <button id="ctaBtn">Get Started</button>
+</section>
+
+<!-- Auth -->
+<section id="authSection">
+  <h2 id="authTitle">Login</h2>
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button id="loginAction">Login</button>
+  <button id="registerAction">Register</button>
+  <br><br>
+  <div id="g_id_onload"
+    data-client_id="369788757102-kjrlk7t5qhmpvorhk588engsuol9e029.apps.googleusercontent.com"
+    data-callback="handleCredentialResponse">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
+</section>
+
+<script>
+/* ====== Dropdown logic (click to open, click outside to close) ====== */
+const nav = document.querySelector('nav');
+const navButtons = nav.querySelectorAll('button[data-target]');
+const navItems = nav.querySelectorAll('.nav-item');
+
+function closeAllDropdowns(){
+  navItems.forEach(item => item.classList.remove('open'));
+}
+function openDropdownById(id){
+  closeAllDropdowns();
+  const btn = [...navButtons].find(b => b.dataset.target === id);
+  const item = btn?.closest('.nav-item');
+  if(item){ item.classList.add('open'); }
+}
+
+navButtons.forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const targetId = btn.dataset.target;
+    const item = btn.closest('.nav-item');
+    const isOpen = item.classList.contains('open');
+    closeAllDropdowns();
+    if(!isOpen) item.classList.add('open');
+  });
+});
+
+document.addEventListener('click', (e)=>{
+  const insideDropdown = e.target.closest('.dropdown');
+  const isButton = e.target.closest('button[data-target]');
+  if(!insideDropdown && !isButton){ closeAllDropdowns(); }
+});
+
+window.addEventListener('scroll', ()=> {
+  closeAllDropdowns();
+  document.getElementById('topbar').classList.toggle('scrolled', window.scrollY>6);
+});
+
+/* ====== Sections: show/hide auth ====== */
+const heroSection = document.getElementById('heroSection');
+const authSection = document.getElementById('authSection');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const ctaBtn = document.getElementById('ctaBtn');
+
+function showAuth(){
+  heroSection.classList.add('hidden');
+  authSection.classList.remove('hidden');
+  heroSection.style.display = 'none';
+  authSection.style.display = 'block';
+}
+function showHero(){
+  authSection.classList.add('hidden');
+  heroSection.classList.remove('hidden');
+  authSection.style.display = 'none';
+  heroSection.style.display = 'flex';
+}
+
+loginBtn.addEventListener('click', showAuth);
+ctaBtn.addEventListener('click', showAuth);
+
+/* ====== Simple LocalStorage auth (demo only) ====== */
+let loggedIn = localStorage.getItem("loggedInUser");
+if (loggedIn){
+  logoutBtn.style.display = "inline-block";
+  loginBtn.style.display = "none";
+}
+
+document.getElementById("logo").onclick = () => {
+  closeAllDropdowns();
+  showHero();
+};
+
+document.getElementById('registerAction').onclick = function(){
+  const email = document.getElementById("email").value.trim();
+  const pass = document.getElementById("password").value;
+  if(!email || !pass){ alert("Please enter email and password."); return; }
+  localStorage.setItem(email, pass);
+  alert("Registered successfully!");
+};
+
+document.getElementById('loginAction').onclick = function(){
+  const email = document.getElementById("email").value.trim();
+  const pass = document.getElementById("password").value;
+  if(localStorage.getItem(email) === pass){
+    localStorage.setItem("loggedInUser", email);
+    alert("Login successful!");
+    showHero();
+    logoutBtn.style.display = "inline-block";
+    loginBtn.style.display = "none";
+  }else{
+    alert("Invalid credentials!");
+  }
+};
+
+logoutBtn.onclick = function(){
+  localStorage.removeItem("loggedInUser");
+  location.reload();
+};
+
+/* Google Sign-In callback */
+function handleCredentialResponse(response){
+  alert("Google login successful!");
+  showHero();
+  logoutBtn.style.display = "inline-block";
+  loginBtn.style.display = "none";
+}
+window.handleCredentialResponse = handleCredentialResponse;
+
+/* ====== Subtle starfield (space dust) ====== */
+(function(){
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    makeStars();
+  }
+
+  function makeStars(){
+    const count = Math.min(180, Math.floor(W*H/9000)); // density
+    stars = new Array(count).fill(0).map(()=>({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      z: Math.random()*0.6 + 0.4, // brightness/depth
+      r: Math.random()*1.2 + 0.3,
+      vx: (Math.random()*0.15 - 0.075), // slow drift
+      vy: (Math.random()*0.15 - 0.075)
+    }));
+  }
+
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    for(const s of stars){
+      s.x += s.vx * s.z;
+      s.y += s.vy * s.z;
+
+      if(s.x<-10) s.x = W+10;
+      if(s.x>W+10) s.x = -10;
+      if(s.y<-10) s.y = H+10;
+      if(s.y>H+10) s.y = -10;
+
+      const glow = 0.35 * s.z;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(230,245,255,${0.75*s.z})`;
+      ctx.shadowColor = `rgba(77,184,255,${glow})`;
+      ctx.shadowBlur = 8 + 12*s.z;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', resize);
+  resize(); tick();
+})();
+
+/* ====== Keyboard escape closes dropdown ====== */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') closeAllDropdowns();
+});
+
+
+function alignDropdownArrows(){
+  navItems.forEach(item=>{
+    const btn = item.querySelector('button[data-target]');
+    const dd  = item.querySelector('.dropdown');
+    if(!btn || !dd) return;
+    const btnRect = btn.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    const left = Math.max(12, btnRect.left - itemRect.left + 16);
+    dd.style.setProperty('--arrow-left', left+'px');
+    // Move the ::before arrow via inline style fallback
+    dd.style.setProperty('position','absolute'); // ensure applied
+  });
+}
+window.addEventListener('resize', alignDropdownArrows);
+window.addEventListener('load', alignDropdownArrows);
+</script>
+</body>
+</html>
